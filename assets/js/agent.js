@@ -118,6 +118,84 @@ export class GeminiClient {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GROQ CLIENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
+
+export class GroqClient {
+  /**
+   * @param {string}   apiKey    - Groq API key (from console.groq.com)
+   * @param {string}   model     - Groq model ID, e.g. 'llama-3.3-70b-versatile'
+   * @param {Function} [onRetry] - Called with (waitSec, attempt) on rate-limit retry
+   */
+  constructor(apiKey, model, onRetry) {
+    if (!apiKey) throw new Error('Groq API key tidak boleh kosong.');
+    if (!model)  throw new Error('Model ID tidak boleh kosong.');
+    this.apiKey    = apiKey;
+    this.model     = model;
+    this._onRetry  = onRetry ?? null;
+  }
+
+  /**
+   * Send a prompt and return the text response.
+   * Automatically retries on 429 rate-limit errors.
+   *
+   * @param {string} userPrompt
+   * @param {string} [systemContext]
+   * @param {object} [_genConfig]   - Unused (kept for interface parity with GeminiClient)
+   * @param {number} [attempt]
+   * @returns {Promise<string>}
+   */
+  async generate(userPrompt, systemContext = '', _genConfig = {}, attempt = 1) {
+    const MAX_ATTEMPTS = 3;
+
+    const messages = [];
+    if (systemContext.trim()) {
+      messages.push({ role: 'system', content: systemContext });
+    }
+    messages.push({ role: 'user', content: userPrompt });
+
+    const res = await fetch(GROQ_ENDPOINT, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model:       this.model,
+        messages,
+        temperature: 0.7,
+        max_tokens:  8192,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = err?.error?.message ?? `HTTP ${res.status}`;
+
+      // ── Rate limit (429): retry with suggested delay ──
+      if (res.status === 429 && attempt < MAX_ATTEMPTS) {
+        const waitSec = parseRetryAfter(msg) || (attempt * 10);
+        console.warn(`[Groq] Rate limited. Retry ${attempt}/${MAX_ATTEMPTS - 1} setelah ${waitSec}d…`);
+        this._onRetry?.(waitSec, attempt);
+        await sleep(waitSec * 1000);
+        return this.generate(userPrompt, systemContext, _genConfig, attempt + 1);
+      }
+
+      throw new Error(`Groq API error: ${msg}`);
+    }
+
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content;
+
+    if (!text) throw new Error('Respons Groq API kosong atau tidak valid.');
+    return text;
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 // DEPTH CONFIGURATIONS
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -25,7 +25,7 @@ import {
   markdownToHtml,
 } from './ui.js';
 
-import { GeminiClient, ResearchAgent } from './agent.js';
+import { GeminiClient, GroqClient, ResearchAgent } from './agent.js';
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -34,7 +34,8 @@ import { GeminiClient, ResearchAgent } from './agent.js';
 
 const state = {
   depth:     'standar',
-  model:     'gemini-2.0-flash-lite',
+  provider:  'groq',
+  model:     'llama-3.3-70b-versatile',
   isRunning: false,
 };
 
@@ -45,6 +46,9 @@ const state = {
 
 let elApiKeySection;
 let elApiKeyInput;
+let elApiKeyLabel;
+let elApiKeyNote;
+let elApiKeyLink;
 let elToggleKeyBtn;
 let elTopicInput;
 let elModelSelect;
@@ -60,29 +64,35 @@ document.addEventListener('DOMContentLoaded', () => {
   // Resolve DOM references
   elApiKeySection = document.getElementById('apiKeySection');
   elApiKeyInput   = document.getElementById('apiKey');
+  elApiKeyLabel   = document.getElementById('apiKeyLabel');
+  elApiKeyNote    = document.getElementById('apiKeyNote');
+  elApiKeyLink    = document.getElementById('apiKeyLink');
   elToggleKeyBtn  = document.getElementById('toggleKeyBtn');
   elStartBtn      = document.getElementById('startBtn');
   elTopicInput    = document.getElementById('topicInput');
   elModelSelect   = document.getElementById('modelSelect');
   elWorkspace     = document.getElementById('workspace');
 
-  // ── Handle environment API key ──────────────────────────────────────────
-  // If config.js injected window.GEMINI_API_KEY, hide the input section.
-  if (window.GEMINI_API_KEY) {
-    elApiKeySection.style.display = 'none';
-  } else {
-    // Restore key from session storage (convenience — not a security measure)
-    const savedKey = sessionStorage.getItem('rm_apikey');
-    if (savedKey) elApiKeyInput.value = savedKey;
+  // ── Handle config.js keys ─────────────────────────────────────────────────────
+  // Jika config.js ada dan key sudah diisi, form API key disembunyikan.
+  // Key dibaca langsung dari window saat riset dijalankan.
+  const hasGroqConfig   = window.GROQ_API_KEY   && window.GROQ_API_KEY   !== 'YOUR_GROQ_API_KEY_HERE';
+  const hasGeminiConfig = window.GEMINI_API_KEY  && window.GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY_HERE';
 
-    elApiKeyInput.addEventListener('input', () => {
-      sessionStorage.setItem('rm_apikey', elApiKeyInput.value);
-    });
+  if (hasGroqConfig || hasGeminiConfig) {
+    elApiKeySection.style.display = 'none';
   }
 
   // ── Bind events ─────────────────────────────────────────────────────────
   elToggleKeyBtn?.addEventListener('click', handleToggleKeyVisibility);
   elStartBtn.addEventListener('click', handleStartResearch);
+
+  // Provider tabs
+  document.querySelectorAll('.provider-tab').forEach((tab) => {
+    tab.addEventListener('click', () => handleSetProvider(tab.dataset.provider));
+  });
+
+  // Model dropdown
   elModelSelect?.addEventListener('change', () => {
     state.model = elModelSelect.value;
   });
@@ -95,12 +105,97 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.depth-btn').forEach((btn) => {
     btn.addEventListener('click', () => handleSetDepth(btn.dataset.depth, btn));
   });
+
+  // ── Start with Groq selected ──────────────────────────────────────────────
+  handleSetProvider('groq');
 });
 
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────────
+// HANDLERS — PROVIDER SELECTOR
+// ─────────────────────────────────────────────────────────────────────────────────
+
+const PROVIDER_CONFIG = {
+  groq: {
+    label:       'Groq API Key',
+    placeholder: 'Masukkan Groq API Key kamu…',
+    noteText:    '🔒 Key hanya di sesi browser ini. Groq gratis, limit 14.400 req/hari. · ',
+    linkText:    'Daftar Groq gratis →',
+    linkHref:    'https://console.groq.com',
+    sessionKey:  'rm_groq_key',
+    models: [
+      { value: 'llama-3.3-70b-versatile', label: 'llama-3.3-70b — Terbaik ★' },
+      { value: 'llama-3.1-8b-instant',    label: 'llama-3.1-8b — Tercepat' },
+      { value: 'mixtral-8x7b-32768',      label: 'mixtral-8x7b — Seimbang' },
+      { value: 'llama3-70b-8192',         label: 'llama3-70b — Stabil' },
+    ],
+  },
+  gemini: {
+    label:       'Gemini API Key',
+    placeholder: 'Masukkan Gemini API Key kamu…',
+    noteText:    '🔒 Key hanya di sesi browser ini. Dikirim langsung ke Google. · ',
+    linkText:    'Dapatkan Gemini key gratis →',
+    linkHref:    'https://aistudio.google.com/apikey',
+    sessionKey:  'rm_gemini_key',
+    models: [
+      { value: 'gemini-2.0-flash-lite', label: 'gemini-2.0-flash-lite — Gratis ★' },
+      { value: 'gemini-2.0-flash',      label: 'gemini-2.0-flash — Gratis' },
+      { value: 'gemini-1.5-flash',      label: 'gemini-1.5-flash — Gratis' },
+      { value: 'gemini-1.5-flash-8b',   label: 'gemini-1.5-flash-8b — Gratis, Cepat' },
+    ],
+  },
+};
+
+/**
+ * Switch the active provider and update all dependent UI elements.
+ * @param {'groq'|'gemini'} provider
+ */
+function handleSetProvider(provider) {
+  state.provider = provider;
+  const cfg = PROVIDER_CONFIG[provider];
+
+  // ── Update tabs ──
+  document.querySelectorAll('.provider-tab').forEach((tab) => {
+    const active = tab.dataset.provider === provider;
+    tab.classList.toggle('selected', active);
+    tab.setAttribute('aria-selected', String(active));
+  });
+
+  // ── Update API key field ──
+  if (elApiKeyLabel)  elApiKeyLabel.textContent    = cfg.label;
+  if (elApiKeyInput)  elApiKeyInput.placeholder     = cfg.placeholder;
+  if (elApiKeyLink) {
+    elApiKeyLink.textContent = cfg.linkText;
+    elApiKeyLink.href        = cfg.linkHref;
+  }
+
+  // Restore saved key for this provider (only if section is visible)
+  const configKey = provider === 'groq' ? window.GROQ_API_KEY : window.GEMINI_API_KEY;
+  const isConfigValid = configKey && configKey !== 'YOUR_GROQ_API_KEY_HERE' && configKey !== 'YOUR_GEMINI_API_KEY_HERE';
+
+  if (isConfigValid) {
+    // Key dari config.js — sembunyikan form
+    elApiKeySection.style.display = 'none';
+  } else {
+    // Tidak ada config key — tampilkan form, restore dari session
+    elApiKeySection.style.display = '';
+    const savedKey = sessionStorage.getItem(cfg.sessionKey);
+    if (elApiKeyInput) elApiKeyInput.value = savedKey ?? '';
+  }
+
+  // ── Rebuild model dropdown ──
+  if (elModelSelect) {
+    elModelSelect.innerHTML = cfg.models
+      .map((m) => `<option value="${m.value}">${m.label}</option>`)
+      .join('');
+    state.model = cfg.models[0].value;
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────────
 // HANDLERS — DEPTH SELECTOR
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────────
 
 /**
  * @param {string}      depth  - 'singkat' | 'standar' | 'mendalam'
@@ -132,11 +227,14 @@ function handleToggleKeyVisibility() {
 async function handleStartResearch() {
   if (state.isRunning) return;
 
-  const apiKey = window.GEMINI_API_KEY || elApiKeyInput?.value.trim();
+  // Ambil API key: utamakan dari config.js, fallback ke input form
+  const configKey = state.provider === 'groq' ? window.GROQ_API_KEY : window.GEMINI_API_KEY;
+  const isConfigValid = configKey && configKey !== 'YOUR_GROQ_API_KEY_HERE' && configKey !== 'YOUR_GEMINI_API_KEY_HERE';
+  const apiKey = isConfigValid ? configKey : elApiKeyInput?.value.trim();
   const topic  = elTopicInput.value.trim();
 
   if (!apiKey) {
-    showToast('⚠️ Masukkan Gemini API Key terlebih dahulu.', 'error');
+    showToast('⚠️ Masukkan API Key terlebih dahulu.', 'error');
     elApiKeyInput?.focus();
     return;
   }
@@ -168,13 +266,25 @@ async function handleStartResearch() {
   container.appendChild(planCardSlot);
   container.appendChild(resultsSlot);
 
-  // ── Initialise agent ─────────────────────────────────────────────────────
+  // Save API key to session for this provider
+  const cfg = PROVIDER_CONFIG[state.provider];
+  if (cfg && elApiKeyInput?.value) {
+    sessionStorage.setItem(cfg.sessionKey, elApiKeyInput.value);
+  }
+
+  // ── Initialise client ───────────────────────────────────────────────────────
+  const onRetry = (waitSec, attempt) => {
+    addLog(`⏳ Rate limit — tunggu ${waitSec}d lalu retry (${attempt}/2)…`);
+    showToast(`⏳ Rate limit — retry otomatis dalam ${waitSec}d…`);
+  };
+
   let client;
   try {
-    client = new GeminiClient(apiKey, state.model, (waitSec, attempt) => {
-      addLog(`⏳ Rate limit — tunggu ${waitSec}d lalu retry (${attempt}/2)…`);
-      showToast(`⏳ Rate limit — retry otomatis dalam ${waitSec}d…`);
-    });
+    if (state.provider === 'groq') {
+      client = new GroqClient(apiKey, state.model, onRetry);
+    } else {
+      client = new GeminiClient(apiKey, state.model, onRetry);
+    }
   } catch (err) {
     showToast(`❌ ${err.message}`, 'error');
     finishResearch();
