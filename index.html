@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ResearchMind — AI Research Agent</title>
+  <meta name="description" content="Agen riset berbasis AI yang menganalisis topik secara mendalam dan menghasilkan laporan komprehensif secara otomatis menggunakan Gemini." />
+  <meta name="keywords" content="AI research, agentic AI, Gemini, riset otomatis, laporan AI" />
+  <meta name="author" content="ResearchMind" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="ResearchMind — AI Research Agent" />
+  <meta property="og:description" content="Agen riset AI yang membuat laporan komprehensif secara otomatis." />
+  <meta property="og:type" content="website" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,600;1,400&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ─── NAVIGATION ─── -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <a href="/" class="nav-brand" aria-label="ResearchMind — Beranda">
+      <div class="logo-icon" aria-hidden="true">🔬</div>
+      <span>ResearchMind</span>
+    </a>
+    <div class="nav-right">
+      <span class="nav-badge">Agentic AI</span>
+      <a
+        href="https://aistudio.google.com/apikey"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="nav-link"
+      >
+        Dapatkan API Key →
+      </a>
+    </div>
+  </nav>
+
+  <!-- ─── HERO + FORM ─── -->
+  <section class="hero-section" aria-labelledby="heroHeading">
+    <div class="container">
+
+      <!-- Hero Text -->
+      <header class="hero">
+        <div class="hero-tag">
+          <span class="dot" aria-hidden="true"></span>
+          Powered by Gemini AI
+        </div>
+        <h1 id="heroHeading">
+          Riset Mendalam,<br />
+          <span class="gradient-text">Tanpa Batas</span>
+        </h1>
+        <p>
+          Masukkan topik apa saja — agen riset akan memecahnya menjadi sub-topik,
+          menganalisis setiap bagian secara mendalam, lalu menyusun laporan
+          komprehensif untukmu secara otomatis.
+        </p>
+      </header>
+
+      <!-- Step Indicator -->
+      <ol class="step-row" id="stepRow" aria-label="Tahapan agen riset">
+        <li class="step-pill" id="spill-1">
+          <span class="step-num" aria-hidden="true">1</span>
+          Rencanakan
+        </li>
+        <li class="step-arrow" aria-hidden="true">›</li>
+        <li class="step-pill" id="spill-2">
+          <span class="step-num" aria-hidden="true">2</span>
+          Analisis
+        </li>
+        <li class="step-arrow" aria-hidden="true">›</li>
+        <li class="step-pill" id="spill-3">
+          <span class="step-num" aria-hidden="true">3</span>
+          Sintesis
+        </li>
+        <li class="step-arrow" aria-hidden="true">›</li>
+        <li class="step-pill" id="spill-4">
+          <span class="step-num" aria-hidden="true">4</span>
+          Laporan
+        </li>
+      </ol>
+
+      <!-- Input Card -->
+      <div class="card">
+
+        <!-- API Key (tersembunyi otomatis jika env tersedia) -->
+        <div class="card-section" id="apiKeySection">
+          <p class="section-label">
+            <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            Gemini API Key
+          </p>
+          <div class="api-row">
+            <div class="input-wrap">
+              <span class="input-icon" aria-hidden="true">🔑</span>
+              <input
+                type="password"
+                id="apiKey"
+                placeholder="Masukkan Gemini API Key kamu…"
+                autocomplete="off"
+                aria-label="Gemini API Key"
+                spellcheck="false"
+              />
+            </div>
+            <button class="btn-icon" id="toggleKeyBtn" aria-label="Tampilkan atau sembunyikan API key">
+              <svg aria-hidden="true" id="eyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+          <p class="api-note">
+            🔒 Kunci hanya tersimpan di sesi browser ini dan dikirim langsung ke Google — tidak melewati server pihak ketiga. ·
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Dapatkan gratis →</a>
+          </p>
+        </div>
+
+        <!-- Topik Riset -->
+        <div class="card-section">
+          <p class="section-label">
+            <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            Topik Riset
+          </p>
+          <textarea
+            class="topic-area"
+            id="topicInput"
+            placeholder="Contoh: Dampak kecerdasan buatan terhadap pasar kerja di era modern…"
+            rows="3"
+            aria-label="Topik riset"
+            aria-describedby="topicHint"
+          ></textarea>
+          <p id="topicHint" class="api-note" style="margin-top:6px;">
+            💡 Tekan <kbd>Ctrl + Enter</kbd> untuk mulai riset
+          </p>
+
+          <div class="options-row">
+            <div class="depth-group">
+              <p class="depth-label">Kedalaman Analisis</p>
+              <div class="depth-select" role="group" aria-label="Pilih kedalaman analisis">
+                <button class="depth-btn" id="depth-singkat" data-depth="singkat" aria-pressed="false">⚡ Singkat</button>
+                <button class="depth-btn selected" id="depth-standar" data-depth="standar" aria-pressed="true">📖 Standar</button>
+                <button class="depth-btn" id="depth-mendalam" data-depth="mendalam" aria-pressed="false">🔬 Mendalam</button>
+              </div>
+            </div>
+            <button class="btn-start" id="startBtn" aria-label="Mulai proses riset">
+              <span class="spinner" aria-hidden="true"></span>
+              <span class="btn-label">Mulai Riset →</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── WORKSPACE ─── -->
+  <main class="workspace" id="workspace" aria-label="Hasil riset" aria-live="polite">
+    <div class="container">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon" aria-hidden="true">📂</div>
+        <h2>Belum ada riset yang dijalankan</h2>
+        <p>Isi topik dan API key di atas, lalu klik "Mulai Riset"</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ─── TOAST NOTIFICATION ─── -->
+  <div class="toast" id="toast" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+  <!--
+    config.js: Berisi window.GEMINI_API_KEY — FILE INI DI-GITIGNORE.
+    Jika tidak ada, app akan menggunakan input dari UI.
+    Untuk GitHub Pages, file ini di-generate oleh GitHub Actions dari repository secret.
+  -->
+  <script src="config.js" onerror="console.info('[ResearchMind] config.js tidak ditemukan — menggunakan input UI untuk API key.')"></script>
+
+  <!-- App entry point (ES Module) -->
+  <script type="module" src="assets/js/main.js"></script>
+
+</body>
+</html>
