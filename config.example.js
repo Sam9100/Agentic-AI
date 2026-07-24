@@ -5,19 +5,11 @@
  *
  * CARA PAKAI:
  *   1. Salin file ini: copy config.example.js config.js
- *   2. Isi API key di bawah
+ *   2. Isi API key Groq kamu di bawah
  *   3. Buka index.html — form API key akan otomatis hilang
  *
- * Untuk GitHub Pages:
- *   File ini dibuat otomatis oleh GitHub Actions dari repository secret.
- *   Kamu tidak perlu upload config.js ke GitHub.
- *
- * Dapatkan API key gratis:
- *   - Groq   : https://console.groq.com       (14.400 req/hari, bebas)
- *   - Gemini : https://aistudio.google.com/apikey
+ * Daftar Groq gratis di: https://console.groq.com
+ * (Tidak perlu kartu kredit · limit 14.400 request/hari)
  */
 
-// ── Isi salah satu atau keduanya ──────────────────────────────────────────────
-
-window.GROQ_API_KEY   = 'YOUR_GROQ_API_KEY_HERE';
-window.GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY_HERE';
+window.GROQ_API_KEY = 'YOUR_GROQ_API_KEY_HERE';
