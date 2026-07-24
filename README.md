@@ -37,25 +37,49 @@ Dibangun dengan arsitektur **Clean JavaScript (ES Modules)** dan antarmuka berte
 
 ---
 
-## 🧬 Arsitektur Agen (4 Tahap)
+## 🧬 Arsitektur Sistem & Agen 
 
-Agen bekerja secara otonom melalui alur kerja berurutan sebagai berikut:
+Aplikasi ini menggunakan pola arsitektur **Decoupled Event-Driven Layered Architecture** yang memisahkan antara lapisan antarmuka (UI), logika eksekusi agen (Engine), dan komunikasi REST API.
 
-```mermaid
-graph TD
-    A[🔤 User Input Topic] --> B[📋 Phase 1: Plan]
-    B -->|Ekstraksi 4-5 Sub-topik JSON| C[🔬 Phase 2: Analyze]
-    C -->|Iterasi Analisis Setiap Sub-topik| D[🧩 Phase 3: Synthesize]
-    D -->|Integrasi Temuan & Pola Utama| E[📄 Phase 4: Report]
-    E --> F[🎉 Laporan Akhir Markdown/HTML]
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│                      📱 USER INTERFACE LAYER                           │
+│                 (Input Topik, Kedalaman, Live Logs)                    │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   │
+                                   ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                   🤖 RESEARCH AGENT ENGINE (agent.js)                  │
+│                                                                        │
+│  ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐  │
+│  │ 1. PLAN          │───>│ 2. ANALYZE       │───>│ 3. SYNTHESIZE    │  │
+│  │ (Sub-topik JSON) │    │ (Iterasi Prompt) │    │ (Integrasi Data) │  │
+│  └──────────────────┘    └──────────────────┘    └────────┬─────────┘  │
+│                                                           │            │
+│                                                           ▼            │
+│                                                  ┌──────────────────┐  │
+│                                                  │ 4. REPORT        │  │
+│                                                  │ (Laporan Utuh)   │  │
+│                                                  └──────────────────┘  │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   │
+                                   ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                   ⚡ EXTERNAL LLM INFRASTRUCTURE                      │
+│            (Groq Cloud API — Llama 3.3 70B Versatile)                  │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Penjelasan Detail 4 Tahap:
+### 🔍 Detail Alur 4 Tahap Otonom
 
-1. **Phase 1 — Perencanaan (Plan)**: Agen menganalisis topik riset utama dan memecahnya secara cerdas menjadi 4–5 sub-topik terstruktur dalam format JSON.
-2. **Phase 2 — Analisis Sub-Topik (Analyze)**: Agen mengiterasi setiap sub-topik dan melakukan analisis mendalam sesuai tingkat kedalaman yang dipilih pengguna.
-3. **Phase 3 — Sintesis Temuan (Synthesize)**: Agen menggabungkan seluruh temuan sub-topik, mengidentifikasi keterkaitan antar variabel, serta menemukan kesimpulan inti.
-4. **Phase 4 — Penyusunan Laporan (Report)**: Agen menyusun laporan akademis lengkap yang terdiri dari *Pendahuluan*, *Pembahasan Sub-topik*, *Sintesis*, serta *Kesimpulan & Rekomendasi*.
+1. **Phase 1 — Perencanaan (Plan)**: 
+   Agen menganalisis topik riset utama dan memecahnya secara cerdas menjadi 4–5 sub-topik terstruktur dalam format JSON murni.
+2. **Phase 2 — Analisis Sub-Topik (Analyze)**: 
+   Agen mengiterasi setiap sub-topik secara berurutan dan melakukan analisis mendalam sesuai tingkat kedalaman yang dipilih pengguna (*Singkat*, *Standar*, atau *Mendalam*).
+3. **Phase 3 — Sintesis Temuan (Synthesize)**: 
+   Agen menggabungkan seluruh hasil analisis sub-topik, mengidentifikasi hubungan sebab-akibat dan pola utama yang muncul.
+4. **Phase 4 — Penyusunan Laporan Final (Report)**: 
+   Agen menyusun dokumen laporan akademis utuh berstruktur rapi (*Judul*, *Pendahuluan*, *Pembahasan*, *Sintesis*, serta *Kesimpulan & Rekomendasi*).
 
 ---
 
