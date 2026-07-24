@@ -165,7 +165,10 @@ async function handleStartResearch() {
   // ── Initialise agent ─────────────────────────────────────────────────────
   let client;
   try {
-    client = new GeminiClient(apiKey);
+    client = new GeminiClient(apiKey, (waitSec, attempt) => {
+      addLog(`⏳ Rate limit — tunggu ${waitSec}d lalu retry (${attempt}/2)…`);
+      showToast(`⏳ Rate limit — retry otomatis dalam ${waitSec}d…`);
+    });
   } catch (err) {
     showToast(`❌ ${err.message}`, 'error');
     finishResearch();

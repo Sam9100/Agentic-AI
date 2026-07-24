@@ -14,32 +14,58 @@
 // GEMINI CLIENT
 // ─────────────────────────────────────────────────────────────────────────────
 
-const GEMINI_ENDPOINT =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+// Model yang digunakan — gemini-1.5-flash tersedia di free tier
+const GEMINI_MODEL   = 'gemini-1.5-flash';
+const GEMINI_BASE    = 'https://generativelanguage.googleapis.com/v1beta/models';
+const GEMINI_ENDPOINT = `${GEMINI_BASE}/${GEMINI_MODEL}:generateContent`;
 
 const DEFAULT_GEN_CONFIG = {
   temperature:     0.7,
   maxOutputTokens: 8192,
 };
 
+/**
+ * Parse seconds-to-retry from a Gemini rate-limit error message.
+ * Returns 0 if no value found.
+ * @param {string} message
+ * @returns {number}
+ */
+function parseRetryAfter(message) {
+  const match = message.match(/retry in ([\d.]+)s/i);
+  return match ? Math.ceil(parseFloat(match[1])) : 0;
+}
+
+/**
+ * Sleep for a given number of milliseconds.
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export class GeminiClient {
   /**
-   * @param {string} apiKey - Gemini API key
+   * @param {string}   apiKey   - Gemini API key
+   * @param {Function} [onRetry] - Called with (waitSec, attempt) when a retry is triggered
    */
-  constructor(apiKey) {
+  constructor(apiKey, onRetry) {
     if (!apiKey) throw new Error('API key tidak boleh kosong.');
-    this.apiKey = apiKey;
+    this.apiKey   = apiKey;
+    this._onRetry = onRetry ?? null;
   }
 
   /**
    * Send a prompt (with optional system context) and return the text response.
+   * Automatically retries on 429 rate-limit errors with the server-suggested delay.
    *
    * @param {string} userPrompt
    * @param {string} [systemContext]  - Optional assistant context injected before the prompt
    * @param {object} [genConfig]      - Override generation config
+   * @param {number} [attempt]        - Internal retry counter (starts at 1)
    * @returns {Promise<string>}
    */
-  async generate(userPrompt, systemContext = '', genConfig = {}) {
+  async generate(userPrompt, systemContext = '', genConfig = {}, attempt = 1) {
+    const MAX_ATTEMPTS = 3;
+
     const contents = [];
 
     if (systemContext.trim()) {
@@ -61,6 +87,16 @@ export class GeminiClient {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       const msg = err?.error?.message ?? `HTTP ${res.status}`;
+
+      // ── Rate limit (429): retry with suggested delay ──
+      if (res.status === 429 && attempt < MAX_ATTEMPTS) {
+        const waitSec = parseRetryAfter(msg) || (attempt * 15);
+        console.warn(`[Gemini] Rate limited. Retry ${attempt}/${MAX_ATTEMPTS - 1} setelah ${waitSec}d…`);
+        this._onRetry?.(waitSec, attempt);
+        await sleep(waitSec * 1000);
+        return this.generate(userPrompt, systemContext, genConfig, attempt + 1);
+      }
+
       throw new Error(`Gemini API error: ${msg}`);
     }
 
