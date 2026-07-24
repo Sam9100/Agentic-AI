@@ -14,10 +14,14 @@
 // GEMINI CLIENT
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Model yang digunakan — gemini-1.5-flash tersedia di free tier
-const GEMINI_MODEL   = 'gemini-1.5-flash';
-const GEMINI_BASE    = 'https://generativelanguage.googleapis.com/v1beta/models';
-const GEMINI_ENDPOINT = `${GEMINI_BASE}/${GEMINI_MODEL}:generateContent`;
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+/**
+ * Build the generateContent endpoint URL for a given model.
+ * @param {string} model
+ * @returns {string}
+ */
+const buildEndpoint = (model) => `${GEMINI_BASE}/${model}:generateContent`;
 
 const DEFAULT_GEN_CONFIG = {
   temperature:     0.7,
@@ -45,12 +49,16 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 export class GeminiClient {
   /**
    * @param {string}   apiKey   - Gemini API key
+   * @param {string}   model    - Model ID, e.g. 'gemini-2.0-flash-lite'
    * @param {Function} [onRetry] - Called with (waitSec, attempt) when a retry is triggered
    */
-  constructor(apiKey, onRetry) {
+  constructor(apiKey, model, onRetry) {
     if (!apiKey) throw new Error('API key tidak boleh kosong.');
-    this.apiKey   = apiKey;
-    this._onRetry = onRetry ?? null;
+    if (!model)  throw new Error('Model ID tidak boleh kosong.');
+    this.apiKey    = apiKey;
+    this.model     = model;
+    this._endpoint = buildEndpoint(model);
+    this._onRetry  = onRetry ?? null;
   }
 
   /**
@@ -75,7 +83,7 @@ export class GeminiClient {
 
     contents.push({ role: 'user', parts: [{ text: userPrompt }] });
 
-    const res = await fetch(`${GEMINI_ENDPOINT}?key=${this.apiKey}`, {
+    const res = await fetch(`${this._endpoint}?key=${this.apiKey}`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({

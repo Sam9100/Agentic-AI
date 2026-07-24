@@ -34,6 +34,7 @@ import { GeminiClient, ResearchAgent } from './agent.js';
 
 const state = {
   depth:     'standar',
+  model:     'gemini-2.0-flash-lite',
   isRunning: false,
 };
 
@@ -46,6 +47,7 @@ let elApiKeySection;
 let elApiKeyInput;
 let elToggleKeyBtn;
 let elTopicInput;
+let elModelSelect;
 let elStartBtn;
 let elWorkspace;
 
@@ -61,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
   elToggleKeyBtn  = document.getElementById('toggleKeyBtn');
   elStartBtn      = document.getElementById('startBtn');
   elTopicInput    = document.getElementById('topicInput');
+  elModelSelect   = document.getElementById('modelSelect');
   elWorkspace     = document.getElementById('workspace');
 
   // ── Handle environment API key ──────────────────────────────────────────
@@ -80,6 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Bind events ─────────────────────────────────────────────────────────
   elToggleKeyBtn?.addEventListener('click', handleToggleKeyVisibility);
   elStartBtn.addEventListener('click', handleStartResearch);
+  elModelSelect?.addEventListener('change', () => {
+    state.model = elModelSelect.value;
+  });
 
   elTopicInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.ctrlKey) handleStartResearch();
@@ -165,7 +171,7 @@ async function handleStartResearch() {
   // ── Initialise agent ─────────────────────────────────────────────────────
   let client;
   try {
-    client = new GeminiClient(apiKey, (waitSec, attempt) => {
+    client = new GeminiClient(apiKey, state.model, (waitSec, attempt) => {
       addLog(`⏳ Rate limit — tunggu ${waitSec}d lalu retry (${attempt}/2)…`);
       showToast(`⏳ Rate limit — retry otomatis dalam ${waitSec}d…`);
     });
@@ -233,8 +239,7 @@ async function handleStartResearch() {
   // ── Execute ───────────────────────────────────────────────────────────────
   activateStepPill(1);
   setStepState('plan', 'is-running');
-  addLog(`Agen dimulai · Topik: "${topic}" · Mode: ${state.depth}`);
-
+  addLog(`Agen dimulai · Topik: "${topic}" · Model: ${state.model} · Mode: ${state.depth}`);
   try {
     await agent.run(topic);
   } catch (err) {
